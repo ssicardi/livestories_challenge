@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 
 jupy/
+livestories_challenge/static/

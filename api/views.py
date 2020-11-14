@@ -14,9 +14,10 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib
+
 try:
 	matplotlib.use("TKAgg")
-except ModuleNotFoundError e:
+except ModuleNotFoundError:
 	matplotlib.use('Agg')
 
 @csrf_exempt
