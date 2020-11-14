@@ -14,7 +14,10 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib
-matplotlib.use("TKAgg")
+try:
+	matplotlib.use("TKAgg")
+except ModuleNotFoundError e:
+	matplotlib.use('Agg')
 
 @csrf_exempt
 def countEvent(request, event, count=1):
@@ -82,7 +85,7 @@ def generateImage(jsonDict, event, date):
     plt.ylabel("Frecuency (%)")
     plt.xlim((0,24))
     plt.ylim((0,100))
-    
+
     plt.title("Event: {} by hour on {}".format(event, date))
     time = [i for i in range(24)]
     plt.xticks(time,time)
