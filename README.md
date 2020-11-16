@@ -7,7 +7,7 @@
 `python3 manage.py runserver`
 
 ## Site
-`<https://protected-brook-52969.herokuapp.com>`
+https://protected-brook-52969.herokuapp.com
 
 ## What it does
 
