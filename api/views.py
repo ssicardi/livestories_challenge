@@ -13,9 +13,9 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib
 
 try:
-    matplotlib.use("TKAgg")
-except ModuleNotFoundError:
     matplotlib.use('Agg')
+except ModuleNotFoundError:
+    matplotlib.use("TKAgg")
 
 
 @csrf_exempt
@@ -26,55 +26,58 @@ def countEvent(request, event, count=1):
     else:
         events_list = [Events(event_type=event, date=t) for i in range(count)]
         Events.objects.bulk_create(events_list)
+    return HttpResponse('')
 
 
 def getUniqueEvents(request):
-    try:
-        queryResult = list(Events.objects.values('event_type').annotate(count=Count('id')))
+    queryResult = list(Events.objects.values('event_type').annotate(count=Count('id')))
 
-        jsonRes = {"result": [{"event": d["event_type"], "count": d["count"]} for d in queryResult]}
+    jsonRes = {"result": [{"event": d["event_type"], "count": d["count"]} for d in queryResult]}
 
-        return JsonResponse(jsonRes)
-    except Exception as e:
-        return JsonResponse({"error": str(e)})
+    return JsonResponse(jsonRes)
 
 
 def getEventsFromDates(request):
-    try:
-        start = datetime.strptime(request.GET['start_date'], "%Y%m%d%H")
-        end = datetime.strptime(request.GET['end_date'], "%Y%m%d")
+    start, error_start = parseDate(request.GET['start_date'], "%Y%m%d%H")
 
-        # we add hours and minutes to END to assure we get the events from the day
-        time_added = timedelta(hours=23, minutes=59, seconds=59)
-        end += time_added
+    if (error_start):
+        return JsonResponse(error_start)
 
-        querySet = Events.objects.filter(date__range=(start, end))
-        queryResult = list(querySet.values('date__date', 'event_type'))
+    end, error_end = parseDate(request.GET['end_date'], "%Y%m%d")
 
-        jsonDict = {"result": [{"date": str(d["date__date"]), "event": d["event_type"], "count": d["count"]} for d in
-                               queryResult]}
+    if (error_end):
+        return JsonResponse(error_end)
 
-        return JsonResponse(jsonDict)
-    except Exception as e:
-        return JsonResponse({"error": str(e)})
+    # we add hours and minutes to END to assure we get the events from the day
+    time_added = timedelta(hours=23, minutes=59, seconds=59)
+    end += time_added
+
+    querySet = Events.objects.filter(date__range=(start, end))
+    queryResult = list(querySet.values('date__date', 'event_type').annotate(count=Count('id')))
+
+    jsonDict = {"result": [{"date": str(d["date__date"]), "event": d["event_type"], "count": d["count"]} for d in
+                           queryResult]}
+
+    return JsonResponse(jsonDict)
 
 
 def histogramFromDate(request, event, date):
-    try:
-        start = datetime.strptime(date, "%Y%m%d")
-        time_added = timedelta(hours=23, minutes=59, seconds=59)
-        end = start + time_added
+    start, error = parseDate(date, "%Y%m%d")
 
-        querySet = Events.objects.filter(date__range=(start, end), event_type=event).values()
-        queryResult = list(querySet.values('date__hour').annotate(count=Count('id')))
+    if (error):
+        return JsonResponse(error)
 
-        jsonDict = {"hour": [d["date__hour"] for d in queryResult], "count": [d["count"] for d in queryResult]}
+    time_added = timedelta(hours=23, minutes=59, seconds=59)
+    end = start + time_added
 
-        print(jsonDict)
+    querySet = Events.objects.filter(date__range=(start, end), event_type=event).values()
+    queryResult = list(querySet.values('date__hour').annotate(count=Count('id')))
 
-        return generateImage(jsonDict, event, date)
-    except Exception as e:
-        return JsonResponse({"error": str(e)})
+    jsonDict = {"hour": [d["date__hour"] for d in queryResult], "count": [d["count"] for d in queryResult]}
+
+    print(jsonDict)
+
+    return generateImage(jsonDict, event, date)
 
 
 def generateImage(jsonDict, event, date):
@@ -100,3 +103,22 @@ def generateImage(jsonDict, event, date):
     response['Content-Length'] = str(len(response.content))
 
     return response
+
+def parseDate(date_string, date_format):
+    try:
+        return datetime.strptime(date_string, date_format), {}
+    except Exception as e:
+        return None, {"Error": "Incorrect date format"}
+
+
+
+
+
+
+
+
+
+
+
+
+
